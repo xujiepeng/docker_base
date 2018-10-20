@@ -15,6 +15,6 @@ RUN yum install nginx -y
 RUN echo "daemon off;" >> /etc/nginx/nginx.conf
 RUN useradd -s /sbin/nologin -M www
 EXPOSE 80
-CMD[nginx]
+CMD["nginx"]
 #CMD ["nginx", "-g", "daemon off;"]
 
