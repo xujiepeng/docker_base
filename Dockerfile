@@ -10,8 +10,12 @@ COPY requirements.txt ./
 COPY ./ ./
 RUN /opt/app-root/bin/pip install --no-cache-dir -r requirements.txt
 
-RUN yum -y install epel-release
-RUN yum install nginx
+ADD nginx.repo /etc/yum.repos.d
+RUN yum install nginx -y
+RUN echo "daemon off;" >> /etc/nginx/nginx.conf
+RUN useradd -s /sbin/nologin -M www
+CMD ["nginx"]
 
-CMD ["nginx", "-g", "daemon off;"]
+
+#CMD ["nginx", "-g", "daemon off;"]
 
