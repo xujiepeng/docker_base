@@ -1,20 +1,34 @@
-FROM centos/python-36-centos7
+FROM python:3.6-alpine
 
-ENV DOCKER_HOME=/root
-ENV DOCKER_PROJECT=/root/project
+# Copy in your requirements file
+ADD ./code/requirements.txt /requirements.txt
 
-WORKDIR $DOCKER_PROJECT
+# OR, if you’re using a directory for your requirements, copy everything (comment out the above and uncomment this if so):
+# ADD requirements /requirements
 
-USER root
-COPY requirements.txt ./
-COPY ./ ./
-RUN /opt/app-root/bin/pip install --no-cache-dir -r requirements.txt
+# Install build deps, then run `pip install`, then remove unneeded build deps all in a single step. Correct the path to your production requirements file, if needed.
+RUN set -ex \
+    && apk add --no-cache --virtual .build-deps \
+            gcc \
+            make \
+            libc-dev \
+            musl-dev \
+            linux-headers \
+            pcre-dev \
+            mysql-dev \
+            openldap-dev \
+            libxslt-dev \
+    && pyvenv /venv \
+    && /venv/bin/pip install -U pip \
+    && LIBRARY_PATH=/lib:/usr/lib /bin/sh -c "/venv/bin/pip install --no-cache-dir -r /requirements.txt" \
+    && runDeps="$( \
+            scanelf --needed --nobanner --recursive /venv \
+                    | awk '{ gsub(/,/, "\nso:", $2); print "so:" $2 }' \
+                    | sort -u \
+                    | xargs -r apk info --installed \
+                    | sort -u \
+    )" \
+    && apk add --virtual .python-rundeps $runDeps
+    && apk del .build-deps
 
-ADD nginx.repo /etc/yum.repos.d
-RUN yum install nginx -y
-RUN echo "daemon off;" >> /etc/nginx/nginx.conf
-RUN useradd -s /sbin/nologin -M www
-#EXPOSE 80
-#CMD ["nginx"]
-#CMD ["nginx", "-g", "daemon off;"]
 
